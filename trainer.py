@@ -1,9 +1,10 @@
 import torch
+import os
 import numpy as np
 
 
 def fit(train_loader, val_loader, model, loss_fn, optimizer, scheduler, n_epochs, cuda, log_interval, metrics=[],
-        start_epoch=0):
+        start_epoch=0, save_path='./models'):
     """
     Loaders, model, loss function and metrics should work together for a given task,
     i.e. The model should be able to process data output of loaders,
@@ -16,6 +17,7 @@ def fit(train_loader, val_loader, model, loss_fn, optimizer, scheduler, n_epochs
     for epoch in range(0, start_epoch):
         scheduler.step()
 
+    Val_loss=10000000
     for epoch in range(start_epoch, n_epochs):
         scheduler.step()
 
@@ -28,7 +30,10 @@ def fit(train_loader, val_loader, model, loss_fn, optimizer, scheduler, n_epochs
 
         val_loss, metrics = test_epoch(val_loader, model, loss_fn, cuda, metrics)
         val_loss /= len(val_loader)
-
+        if Val_loss>val_loss:
+            Val_loss=val_loss
+            torch.save(model, os.path.join(save_path, '{}-{}.ckpt'.format(epoch,val_loss)))
+            print('save model to {}'.format(os.path.join(save_path, '{}-{}.ckpt'.format(epoch,val_loss))))
         message += '\nEpoch: {}/{}. Validation set: Average loss: {:.4f}'.format(epoch + 1, n_epochs,
                                                                                  val_loss)
         for metric in metrics:

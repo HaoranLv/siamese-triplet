@@ -146,7 +146,7 @@ class TripletMNIST(Dataset):
     def __len__(self):
         return len(self.mnist_dataset)
 
-class BLDataset(Dataset):
+class SiameseBLDataset(Dataset):
     def __init__(self, root_dir, transform, is_train=True, imgsz=512, test_rate=0.2):
         self.train=is_train
         self.transform=transform
@@ -189,7 +189,11 @@ class BLDataset(Dataset):
 
         
     def __len__(self):
-        return len(self.true_train)
+        if self.train:
+#             print(len(self.true_train))
+            return len(self.true_train)
+        else:
+            return len(self.true_test)
 
     def __getitem__(self, index):
         if self.train:
@@ -208,8 +212,8 @@ class BLDataset(Dataset):
             img2 = self.test_data[self.test_pairs[index][1]]
             target = self.test_pairs[index][2]
         
-        img1_data=ResziePadding(cv2.cvtColor(cv2.imread(os.path.join(self.root_dir,'images',img1)),cv2.COLOR_BGR2RGB), fixed_side=self.imgsz)
-        img2_data=ResziePadding(cv2.cvtColor(cv2.imread(os.path.join(self.root_dir,'images',img2)),cv2.COLOR_BGR2RGB), fixed_side=self.imgsz)
+        img1_data=ResziePadding(cv2.cvtColor(cv2.imread(os.path.join(self.root_dir,'bl',img1)),cv2.COLOR_BGR2RGB), fixed_side=self.imgsz)
+        img2_data=ResziePadding(cv2.cvtColor(cv2.imread(os.path.join(self.root_dir,'bl',img2)),cv2.COLOR_BGR2RGB), fixed_side=self.imgsz)
         
         # print(img1_data.shape)
         img1 = Image.fromarray(img1_data, mode='RGB')
@@ -219,6 +223,49 @@ class BLDataset(Dataset):
             img2 = self.transform(img2)
         return (img1, img2), target
 
+class BLDataset(Dataset):
+    def __init__(self, root_dir, transform, is_train=True, imgsz=512, test_rate=0.2):
+        self.train=is_train
+        self.transform=transform
+        self.imgsz=imgsz
+        self.root_dir = root_dir
+        self.true_imgs=os.listdir(os.path.join(self.root_dir,'true_bl'))
+        self.false_imgs=os.listdir(os.path.join(self.root_dir,'false_bl'))
+        self.false_train, self.false_test=train_test_split(self.false_imgs, test_size=test_rate, random_state=42)
+        self.true_train, self.true_test=train_test_split(self.true_imgs, test_size=test_rate, random_state=42)
+        if self.train:
+            self.train_data = self.true_train+self.false_train
+            self.train_labels = [0]*len(self.true_train)+[1]*len(self.false_train)
+            self.labels_set = set([0,1])
+
+        else:
+            # generate fixed pairs for testing
+            self.test_data = self.true_test+self.false_test
+            self.test_labels = [0]*len(self.true_test)+[1]*len(self.false_test)
+            self.labels_set = set([0,1])
+
+        
+    def __len__(self):
+        if self.train:
+            return len(self.true_train+self.false_train)
+        else:
+            return len(self.true_test+self.false_test)
+
+    def __getitem__(self, index):
+        if self.train:
+            img, label = self.train_data[index], self.train_labels[index]
+        else:
+            img, label = self.test_data[index], self.test_labels[index]
+        
+        img_data=ResziePadding(cv2.cvtColor(cv2.imread(os.path.join(self.root_dir,'bl',img)),cv2.COLOR_BGR2RGB), fixed_side=self.imgsz)
+         
+        # print(img1_data.shape)
+        img = Image.fromarray(img_data, mode='RGB')
+
+        if self.transform is not None:
+            img = self.transform(img)
+
+        return img, label
 
 class BalancedBatchSampler(BatchSampler):
     """
