@@ -3,6 +3,35 @@ from itertools import combinations
 import numpy as np
 import torch
 
+import cv2
+
+def ResziePadding(img, fixed_side=128):	
+
+        h, w = img.shape[0], img.shape[1]
+        scale = max(w, h)/float(fixed_side)   # 获取缩放比例
+        new_w, new_h = int(w/scale), int(h/scale)
+        resize_img = cv2.resize(img, (new_w, new_h))    # 按比例缩放
+        
+        # 计算需要填充的像素长度
+        if new_w % 2 != 0 and new_h % 2 == 0:
+            top, bottom, left, right = (fixed_side - new_h) // 2, (fixed_side - new_h) // 2, (fixed_side - new_w) // 2 + 1, (
+                fixed_side - new_w) // 2
+        elif new_w % 2 == 0 and new_h % 2 != 0:
+            top, bottom, left, right = (fixed_side - new_h) // 2 + 1, (fixed_side - new_h) // 2, (fixed_side - new_w) // 2, (
+                fixed_side - new_w) // 2
+        elif new_w % 2 == 0 and new_h % 2 == 0:
+            top, bottom, left, right = (fixed_side - new_h) // 2, (fixed_side - new_h) // 2, (fixed_side - new_w) // 2, (
+                fixed_side - new_w) // 2
+        else:
+            top, bottom, left, right = (fixed_side - new_h) // 2 + 1, (fixed_side - new_h) // 2, (fixed_side - new_w) // 2 + 1, (
+                fixed_side - new_w) // 2
+
+        # 填充图像
+        pad_img = cv2.copyMakeBorder(resize_img, top, bottom, left, right, cv2.BORDER_CONSTANT, value=[0, 0, 0])
+        
+        return pad_img
+
+
 
 def pdist(vectors):
     distance_matrix = -2 * vectors.mm(torch.t(vectors)) + vectors.pow(2).sum(dim=1).view(1, -1) + vectors.pow(2).sum(

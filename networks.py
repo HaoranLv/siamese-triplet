@@ -1,11 +1,12 @@
 import torch.nn as nn
 import torch.nn.functional as F
+import torchvision
 
 
 class EmbeddingNet(nn.Module):
     def __init__(self):
         super(EmbeddingNet, self).__init__()
-        self.convnet = nn.Sequential(nn.Conv2d(1, 32, 5), nn.PReLU(),
+        self.convnet = nn.Sequential(nn.Conv2d(3, 32, 5), nn.PReLU(),
                                      nn.MaxPool2d(2, stride=2),
                                      nn.Conv2d(32, 64, 5), nn.PReLU(),
                                      nn.MaxPool2d(2, stride=2))
@@ -25,6 +26,35 @@ class EmbeddingNet(nn.Module):
 
     def get_embedding(self, x):
         return self.forward(x)
+
+class ResNet50(nn.Module):
+    def __init__(self):
+        super(ResNet50, self).__init__()
+        resnet_50_s = torchvision.models.resnet50(pretrained=True)
+        resnet_layer = nn.Sequential(*list(resnet_50_s.children())[:-2])
+        self.resnet = resnet_layer
+        # print(self.resnet)
+        
+        self.up7to14=nn.UpsamplingNearest2d(scale_factor=2)
+        self.avgpool=nn.AvgPool2d(7,stride=2)
+        self.fc = nn.Sequential(
+            nn.Linear(51200, 1024),
+            nn.ReLU(inplace=True),
+            nn.Linear(1024, 128),
+            nn.ReLU(inplace=True),
+            nn.Linear(128, 64))
+
+    def forward(self, x):
+        x = self.resnet(x)
+        # x=self.up7to14(x)
+        x=self.avgpool(x)
+        x = x.view(x.size(0), -1)
+        # print(x.shape)
+        x = self.fc(x)
+        return x
+    def get_embedding(self, x):
+        return self.forward(x)
+
 
 
 class EmbeddingNetL2(EmbeddingNet):
