@@ -154,6 +154,12 @@ class SiameseBLDataset(Dataset):
         self.root_dir = root_dir
         self.true_imgs=os.listdir(os.path.join(self.root_dir,'true_bl'))
         self.false_imgs=os.listdir(os.path.join(self.root_dir,'false_bl'))
+        for files in self.true_imgs:
+            if os.path.splitext(files)[-1] != '.jpg':
+                self.true_imgs.remove(files)
+        for files in self.false_imgs:
+            if os.path.splitext(files)[-1] != '.jpg':
+                self.false_imgs.remove(files)
         self.false_train, self.false_test=train_test_split(self.false_imgs, test_size=test_rate, random_state=42)
         self.true_train, self.true_test=train_test_split(self.true_imgs, test_size=test_rate, random_state=42)
         if self.train:
@@ -231,6 +237,12 @@ class BLDataset(Dataset):
         self.root_dir = root_dir
         self.true_imgs=os.listdir(os.path.join(self.root_dir,'true_bl'))
         self.false_imgs=os.listdir(os.path.join(self.root_dir,'false_bl'))
+        for files in self.true_imgs:
+            if os.path.splitext(files)[-1] != '.jpg':
+                self.true_imgs.remove(files)
+        for files in self.false_imgs:
+            if os.path.splitext(files)[-1] != '.jpg':
+                self.false_imgs.remove(files)
         self.false_train, self.false_test=train_test_split(self.false_imgs, test_size=test_rate, random_state=42)
         self.true_train, self.true_test=train_test_split(self.true_imgs, test_size=test_rate, random_state=42)
         if self.train:
@@ -256,16 +268,18 @@ class BLDataset(Dataset):
             img, label = self.train_data[index], self.train_labels[index]
         else:
             img, label = self.test_data[index], self.test_labels[index]
+        try:
+#             print(os.path.join(self.root_dir,'bl',img))
+            img_data=ResziePadding(cv2.cvtColor(cv2.imread(os.path.join(self.root_dir,'bl',img)),cv2.COLOR_BGR2RGB), fixed_side=self.imgsz)
+            img = Image.fromarray(img_data, mode='RGB')
+
+            if self.transform is not None:
+                img = self.transform(img)
+
+            return img, label
+        except:
+            pass
         
-        img_data=ResziePadding(cv2.cvtColor(cv2.imread(os.path.join(self.root_dir,'bl',img)),cv2.COLOR_BGR2RGB), fixed_side=self.imgsz)
-         
-        # print(img1_data.shape)
-        img = Image.fromarray(img_data, mode='RGB')
-
-        if self.transform is not None:
-            img = self.transform(img)
-
-        return img, label
 
 class BalancedBatchSampler(BatchSampler):
     """
