@@ -76,7 +76,7 @@ class ClassificationNet(nn.Module):
         self.embedding_net = embedding_net
         self.n_classes = n_classes
         self.nonlinear = nn.PReLU()
-        self.fc1 = nn.Linear(2, n_classes)
+        self.fc1 = nn.Linear(64, n_classes)
 
     def forward(self, x):
         output = self.embedding_net(x)
